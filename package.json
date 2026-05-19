@@ -1,0 +1,9 @@
+{
+  "name": "audiopen-webhook",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "axios": "^1.9.0",
+    "express": "^5.1.0"
+  }
+}
