@@ -1,10 +1,12 @@
+import 'dotenv/config'
 import express from 'express'
 import axios from 'axios'
-import 'dotenv/config'
 
 const app = express()
 
-app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ extended: false }))
+app.use(express.json())
+app.use(express.text({ type: '*/*' }))
 
 const PORT = process.env.PORT || 3000
 
@@ -17,51 +19,70 @@ app.post('/webhook', async (req, res) => {
   try {
     console.log('Received webhook')
 
-    console.log(JSON.stringify(req.body, null, 2))
+    console.log('HEADERS:', req.headers)
+    console.log('RAW BODY:', req.body)
 
-    // Try a few possible fields from AudioPen
-    const note =
-      req.body.note ||
-      req.body.text ||
-      req.body.content ||
-      JSON.stringify(req.body, null, 2)
+    let data = req.body
 
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/:/g, '-')
+    // If body comes in as raw string (VERY likely here)
+    if (typeof data === 'string') {
+      try {
+        // try parsing as URL encoded manually
+        const params = new URLSearchParams(data)
 
-    const filename = `note-${timestamp}.md`
+        data = Object.fromEntries(params.entries())
+      } catch (e) {
+        console.log('Failed to parse raw body')
+      }
+    }
+
+    console.log('PARSED DATA:', data)
+
+    const title = data.title || 'Untitled Note'
+    const body = data.body || ''
+    const transcript = data.orig_transcript || ''
+
+    const safeTitle = title
+      .replace(/[^a-z0-9]/gi, '-')
+      .replace(/-+/g, '-')
+      .toLowerCase()
+
+    const timestamp = new Date().toISOString().replace(/:/g, '-')
+
+    const filename = `${timestamp}-${safeTitle}.md`
+
+    const markdown = `# ${title}
+
+${body}
+
+---
+
+## Original Transcript
+
+${transcript}
+`
 
     const webdavUrl =
-      `${NEXTCLOUD_URL}` +
+      `${process.env.NEXTCLOUD_URL}` +
       `/remote.php/dav/files/` +
-      `${NEXTCLOUD_USERNAME}/` +
-      `${NEXTCLOUD_FOLDER}/` +
+      `${process.env.NEXTCLOUD_USERNAME}/` +
+      `${process.env.NEXTCLOUD_FOLDER}/` +
       `${filename}`
 
-    await axios.put(webdavUrl, note, {
+    await axios.put(webdavUrl, markdown, {
       auth: {
-        username: NEXTCLOUD_USERNAME,
-        password: NEXTCLOUD_PASSWORD
+        username: process.env.NEXTCLOUD_USERNAME,
+        password: process.env.NEXTCLOUD_PASSWORD
       },
       headers: {
         'Content-Type': 'text/markdown'
       }
     })
 
-    console.log(`Uploaded ${filename}`)
-
-    res.status(200).json({
-      success: true,
-      filename
-    })
+    res.json({ success: true, filename })
   } catch (err) {
     console.error(err.response?.data || err.message)
-
-    res.status(500).json({
-      success: false,
-      error: err.message
-    })
+    res.status(500).json({ error: err.message })
   }
 })
 
