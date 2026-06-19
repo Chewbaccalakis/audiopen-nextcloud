@@ -19,15 +19,22 @@ Example filename:
 
 ### 1. Configure environment
 
+Generate an encryption key (required — used to encrypt Nextcloud passwords at rest):
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
 Create a `.env` file in the project root:
 
 ```env
+ENCRYPTION_KEY=paste-your-generated-key-here
 ADMIN_PASSWORD=choose-a-strong-password
 PORT=3000
 # USERS_FILE=users.json  # optional, defaults to users.json
 ```
 
-`ADMIN_PASSWORD` is required to create new accounts via the web UI. Without it, registration is disabled (existing users can still update their settings).
+`ENCRYPTION_KEY` is required — the server will not start without it. `ADMIN_PASSWORD` is required to create new accounts via the web UI; without it, registration is disabled (existing users can still update their settings via their token URL).
 
 ### 2. Run
 

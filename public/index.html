@@ -312,8 +312,11 @@
 
         document.getElementById('nextcloudUrl').value = user.nextcloudUrl
         document.getElementById('username').value = user.username
-        document.getElementById('password').value = user.password
         document.getElementById('folder').value = user.folder
+
+        const pwField = document.getElementById('password')
+        pwField.placeholder = 'Leave blank to keep your current password'
+        pwField.required = false
 
         document.getElementById('adminSection').classList.add('hidden')
         document.getElementById('submitBtn').textContent = 'Update settings'

@@ -2,11 +2,42 @@ import 'dotenv/config'
 import express from 'express'
 import axios from 'axios'
 import { readFileSync, writeFileSync } from 'fs'
-import { randomUUID } from 'crypto'
+import { randomUUID, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+// --- Encryption setup ---
+
+const ENCRYPTION_KEY_HEX = process.env.ENCRYPTION_KEY
+if (!ENCRYPTION_KEY_HEX || ENCRYPTION_KEY_HEX.length !== 64) {
+  console.error('ENCRYPTION_KEY must be a 64-character hex string (32 bytes).')
+  console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"')
+  process.exit(1)
+}
+const ENCRYPTION_KEY = Buffer.from(ENCRYPTION_KEY_HEX, 'hex')
+
+function encryptPassword(plaintext) {
+  const iv = randomBytes(12)
+  const cipher = createCipheriv('aes-256-gcm', ENCRYPTION_KEY, iv)
+  const encrypted = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()])
+  const authTag = cipher.getAuthTag()
+  return `enc:${iv.toString('hex')}:${authTag.toString('hex')}:${encrypted.toString('hex')}`
+}
+
+function decryptPassword(stored) {
+  if (!stored.startsWith('enc:')) {
+    // Legacy plaintext — transparently supported until next save
+    return stored
+  }
+  const [, ivHex, authTagHex, encryptedHex] = stored.split(':')
+  const decipher = createDecipheriv('aes-256-gcm', ENCRYPTION_KEY, Buffer.from(ivHex, 'hex'))
+  decipher.setAuthTag(Buffer.from(authTagHex, 'hex'))
+  return decipher.update(Buffer.from(encryptedHex, 'hex')) + decipher.final('utf8')
+}
+
+// --- App setup ---
 
 const app = express()
 
@@ -59,7 +90,7 @@ app.post('/api/users', (req, res) => {
   users[token] = {
     nextcloudUrl: nextcloudUrl.replace(/\/$/, ''),
     username,
-    password,
+    password: encryptPassword(password),
     folder: folder || 'AudioPen'
   }
   saveUsers()
@@ -69,24 +100,28 @@ app.post('/api/users', (req, res) => {
   res.json({ token, webhookUrl })
 })
 
+// Returns settings without the password
 app.get('/api/users/:token', (req, res) => {
   const user = users[req.params.token]
   if (!user) return res.status(404).json({ error: 'Not found.' })
-  res.json(user)
+  const { password: _omit, ...safeUser } = user
+  res.json(safeUser)
 })
 
+// Password is optional — omit to keep the existing one
 app.put('/api/users/:token', (req, res) => {
-  if (!users[req.params.token]) return res.status(404).json({ error: 'Not found.' })
+  const existing = users[req.params.token]
+  if (!existing) return res.status(404).json({ error: 'Not found.' })
 
   const { nextcloudUrl, username, password, folder } = req.body
-  if (!nextcloudUrl || !username || !password) {
-    return res.status(400).json({ error: 'nextcloudUrl, username, and password are required.' })
+  if (!nextcloudUrl || !username) {
+    return res.status(400).json({ error: 'nextcloudUrl and username are required.' })
   }
 
   users[req.params.token] = {
     nextcloudUrl: nextcloudUrl.replace(/\/$/, ''),
     username,
-    password,
+    password: password ? encryptPassword(password) : existing.password,
     folder: folder || 'AudioPen'
   }
   saveUsers()
@@ -156,7 +191,7 @@ ${transcript}
     await axios.put(webdavUrl, markdown, {
       auth: {
         username: user.username,
-        password: user.password
+        password: decryptPassword(user.password)
       },
       headers: {
         'Content-Type': 'text/markdown'
