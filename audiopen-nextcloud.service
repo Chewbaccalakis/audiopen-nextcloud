@@ -1,0 +1,14 @@
+[Unit]
+Description=AudioPen Nextcloud Webhook
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/audiopen-nextcloud
+ExecStart=/usr/bin/node server.js
+EnvironmentFile=/opt/audiopen-nextcloud/.env
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

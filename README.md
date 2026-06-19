@@ -36,14 +36,38 @@ PORT=3000
 
 `ENCRYPTION_KEY` is required — the server will not start without it. `ADMIN_PASSWORD` is required to create new accounts via the web UI; without it, registration is disabled (existing users can still update their settings via their token URL).
 
-### 2. Run
+### 2. Install dependencies
 
 ```bash
 npm install
+```
+
+### 3. Run as a systemd service
+
+Copy the included service file and enable it:
+
+```bash
+sudo cp audiopen-nextcloud.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now audiopen-nextcloud
+```
+
+Check status or view logs:
+
+```bash
+sudo systemctl status audiopen-nextcloud
+sudo journalctl -u audiopen-nextcloud -f
+```
+
+The service expects the app to be installed at `/opt/audiopen-nextcloud` with a `.env` file in that directory.
+
+#### Running manually (without systemd)
+
+```bash
 node server.js
 ```
 
-### 3. Register users
+### 4. Register users
 
 Open `http://localhost:3000` in a browser. Each user fills in their Nextcloud credentials and the admin password, then receives:
 
