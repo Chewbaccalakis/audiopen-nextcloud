@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AudioPen → Nextcloud Setup</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: #0082c9;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 18px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .webhook-banner {
+      background: #f0f9ff;
+      border: 1px solid #bae6fd;
+      border-radius: 8px;
+      padding: 14px 16px;
+      margin-bottom: 24px;
+    }
+
+    .webhook-banner label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #0369a1;
+      margin-bottom: 6px;
+    }
+
+    .copy-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .copy-row input {
+      flex: 1;
+      font-size: 13px;
+      padding: 8px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      background: #fff;
+      color: #1a1a1a;
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .btn-copy {
+      padding: 8px 12px;
+      background: #0369a1;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-copy:hover { background: #0284c7; }
+    .btn-copy.copied { background: #16a34a; }
+
+    form { display: flex; flex-direction: column; gap: 16px; }
+
+    .field { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 13px;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: -2px;
+    }
+
+    input[type="text"],
+    input[type="url"],
+    input[type="password"] {
+      padding: 9px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 7px;
+      font-size: 14px;
+      color: #1a1a1a;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #0082c9;
+      box-shadow: 0 0 0 3px rgba(0,130,201,0.12);
+    }
+
+    .password-wrap {
+      position: relative;
+    }
+
+    .password-wrap input {
+      padding-right: 40px;
+    }
+
+    .toggle-pw {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #9ca3af;
+      font-size: 16px;
+      padding: 4px;
+      line-height: 1;
+    }
+
+    .toggle-pw:hover { color: #374151; }
+
+    .divider {
+      height: 1px;
+      background: #f3f4f6;
+      margin: 4px 0;
+    }
+
+    .admin-section label {
+      color: #6b7280;
+    }
+
+    .btn-submit {
+      padding: 10px;
+      background: #0082c9;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s;
+      margin-top: 4px;
+    }
+
+    .btn-submit:hover { background: #006ba6; }
+    .btn-submit:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    .alert {
+      padding: 12px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .alert-success {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+    }
+
+    .alert-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #b91c1c;
+    }
+
+    .manage-link {
+      font-size: 12px;
+      color: #6b7280;
+      text-align: center;
+      margin-top: 4px;
+    }
+
+    .manage-link a {
+      color: #0082c9;
+      text-decoration: none;
+    }
+
+    .manage-link a:hover { text-decoration: underline; }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">&#9654;</div>
+      <div>
+        <h1>AudioPen → Nextcloud</h1>
+        <div class="subtitle" id="subtitle">Connect your AudioPen notes to Nextcloud</div>
+      </div>
+    </div>
+
+    <!-- Webhook URL banner (shown after registration or for returning users) -->
+    <div class="webhook-banner hidden" id="webhookBanner">
+      <label>Your AudioPen Webhook URL</label>
+      <div class="copy-row">
+        <input type="text" id="webhookUrl" readonly />
+        <button class="btn-copy" id="copyBtn" onclick="copyWebhook()">Copy</button>
+      </div>
+    </div>
+
+    <div id="alertBox" class="alert hidden"></div>
+
+    <form id="setupForm" onsubmit="handleSubmit(event)">
+      <div class="field">
+        <label for="nextcloudUrl">Nextcloud URL</label>
+        <input type="url" id="nextcloudUrl" placeholder="https://nextcloud.example.com" required />
+      </div>
+
+      <div class="field">
+        <label for="username">Username</label>
+        <input type="text" id="username" placeholder="youruser" required autocomplete="username" />
+      </div>
+
+      <div class="field">
+        <label for="password">App Password</label>
+        <div class="password-wrap">
+          <input type="password" id="password" placeholder="Generate one in Nextcloud → Settings → Security" required autocomplete="current-password" />
+          <button type="button" class="toggle-pw" onclick="togglePassword('password', this)">&#128065;</button>
+        </div>
+        <span class="hint">Use an app password, not your login password.</span>
+      </div>
+
+      <div class="field">
+        <label for="folder">Nextcloud Folder</label>
+        <input type="text" id="folder" placeholder="AudioPen" />
+        <span class="hint">Folder must already exist in your Nextcloud.</span>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Admin password field — hidden for returning users updating settings -->
+      <div class="field admin-section" id="adminSection">
+        <label for="adminPassword">Admin Password</label>
+        <div class="password-wrap">
+          <input type="password" id="adminPassword" placeholder="Required to create a new account" autocomplete="off" />
+          <button type="button" class="toggle-pw" onclick="togglePassword('adminPassword', this)">&#128065;</button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Set up integration</button>
+    </form>
+
+    <p class="manage-link hidden" id="manageLink">
+      Bookmark this page to return and update your settings.
+    </p>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(location.search)
+    const token = params.get('token')
+    let webhookUrlValue = ''
+
+    if (token) {
+      loadExistingUser(token)
+    }
+
+    async function loadExistingUser(token) {
+      try {
+        const res = await fetch(`/api/users/${token}`)
+        if (!res.ok) {
+          showAlert('error', 'This link is invalid or the account no longer exists.')
+          return
+        }
+        const user = await res.json()
+
+        document.getElementById('nextcloudUrl').value = user.nextcloudUrl
+        document.getElementById('username').value = user.username
+        document.getElementById('password').value = user.password
+        document.getElementById('folder').value = user.folder
+
+        document.getElementById('adminSection').classList.add('hidden')
+        document.getElementById('submitBtn').textContent = 'Update settings'
+        document.getElementById('subtitle').textContent = 'Update your integration settings'
+
+        webhookUrlValue = `${location.protocol}//${location.host}/webhook/${token}`
+        showWebhookBanner(webhookUrlValue)
+        document.getElementById('manageLink').classList.add('hidden')
+      } catch (err) {
+        showAlert('error', 'Failed to load settings. Please try again.')
+      }
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault()
+      const btn = document.getElementById('submitBtn')
+      btn.disabled = true
+      btn.textContent = token ? 'Saving…' : 'Creating…'
+      clearAlert()
+
+      const body = {
+        nextcloudUrl: document.getElementById('nextcloudUrl').value.trim(),
+        username: document.getElementById('username').value.trim(),
+        password: document.getElementById('password').value,
+        folder: document.getElementById('folder').value.trim() || 'AudioPen',
+      }
+
+      try {
+        let res, data
+
+        if (token) {
+          res = await fetch(`/api/users/${token}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
+          data = await res.json()
+          if (!res.ok) throw new Error(data.error)
+          showAlert('success', 'Settings updated successfully.')
+        } else {
+          body.adminPassword = document.getElementById('adminPassword').value
+          res = await fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+          })
+          data = await res.json()
+          if (!res.ok) throw new Error(data.error)
+
+          webhookUrlValue = data.webhookUrl
+          showWebhookBanner(data.webhookUrl)
+
+          const manageUrl = `${location.protocol}//${location.host}/?token=${data.token}`
+          document.getElementById('manageLink').innerHTML =
+            `Bookmark <a href="${manageUrl}">your settings page</a> to update credentials later.`
+          document.getElementById('manageLink').classList.remove('hidden')
+
+          showAlert('success', 'Integration created! Copy your webhook URL and paste it into AudioPen.')
+        }
+      } catch (err) {
+        showAlert('error', err.message)
+      } finally {
+        btn.disabled = false
+        btn.textContent = token ? 'Update settings' : 'Set up integration'
+      }
+    }
+
+    function showWebhookBanner(url) {
+      document.getElementById('webhookUrl').value = url
+      document.getElementById('webhookBanner').classList.remove('hidden')
+    }
+
+    function copyWebhook() {
+      navigator.clipboard.writeText(webhookUrlValue)
+      const btn = document.getElementById('copyBtn')
+      btn.textContent = 'Copied!'
+      btn.classList.add('copied')
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied') }, 2000)
+    }
+
+    function togglePassword(id, btn) {
+      const input = document.getElementById(id)
+      const isHidden = input.type === 'password'
+      input.type = isHidden ? 'text' : 'password'
+      btn.textContent = isHidden ? '🙈' : '👁'
+    }
+
+    function showAlert(type, msg) {
+      const box = document.getElementById('alertBox')
+      box.className = `alert alert-${type}`
+      box.textContent = msg
+      box.classList.remove('hidden')
+    }
+
+    function clearAlert() {
+      document.getElementById('alertBox').classList.add('hidden')
+    }
+  </script>
+</body>
+</html>

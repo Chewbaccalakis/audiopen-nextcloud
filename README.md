@@ -1,13 +1,13 @@
 # AudioPen Nextcloud Webhook
 
-A small Node.js webhook service that receives notes from AudioPen and uploads them to a folder in Nextcloud using WebDAV. Supports multiple users, each with their own Nextcloud credentials and a unique webhook token.
+A Node.js service that receives notes from AudioPen and uploads them to Nextcloud via WebDAV. Includes a web UI for self-service setup — each user enters their own Nextcloud credentials and gets a unique webhook URL.
 
-When AudioPen sends a webhook request, the service:
+When AudioPen sends a webhook, the service:
 
 1. Validates the token in the URL
-2. Receives the note content
+2. Parses the note content (title, body, original transcript)
 3. Creates a timestamped Markdown file
-4. Uploads the file to the configured Nextcloud folder
+4. Uploads it to the user's configured Nextcloud folder
 
 Example filename:
 
@@ -17,49 +17,36 @@ Example filename:
 
 ## Setup
 
-### 1. Configure users
+### 1. Configure environment
 
-Copy `users.json.example` to `users.json` and fill in credentials for each user:
-
-```json
-{
-  "abc123secrettoken": {
-    "nextcloudUrl": "https://nextcloud.example.com",
-    "username": "alice",
-    "password": "alice-app-password",
-    "folder": "AudioPen"
-  }
-}
-```
-
-Each key is a secret token that identifies a user. Generate one with:
-
-```bash
-node -e "console.log(crypto.randomUUID())"
-```
-
-### 2. Configure the server
-
-Optionally create a `.env` file to set the port or a custom path to `users.json`:
+Create a `.env` file in the project root:
 
 ```env
+ADMIN_PASSWORD=choose-a-strong-password
 PORT=3000
-USERS_FILE=users.json
+# USERS_FILE=users.json  # optional, defaults to users.json
 ```
 
-### 3. Run
+`ADMIN_PASSWORD` is required to create new accounts via the web UI. Without it, registration is disabled (existing users can still update their settings).
+
+### 2. Run
 
 ```bash
 npm install
 node server.js
 ```
 
-### 4. Configure AudioPen
+### 3. Register users
 
-In AudioPen's webhook settings, set the URL to:
+Open `http://localhost:3000` in a browser. Each user fills in their Nextcloud credentials and the admin password, then receives:
 
-```
-https://your-server/webhook/<token>
-```
+- A **webhook URL** to paste into AudioPen (`/webhook/<token>`)
+- A **settings page URL** to bookmark for updating credentials later (`/?token=<token>`)
 
-Each user gets their own URL containing their unique token.
+### Returning users
+
+Visiting `/?token=<token>` pre-fills the form with existing settings and allows updating credentials without needing the admin password.
+
+## Manual user management
+
+User credentials are stored in `users.json` (gitignored). You can also edit this file directly — see `users.json.example` for the format.
