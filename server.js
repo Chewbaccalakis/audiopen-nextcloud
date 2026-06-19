@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import express from 'express'
 import axios from 'axios'
+import { readFileSync } from 'fs'
 
 const app = express()
 
@@ -10,14 +11,24 @@ app.use(express.text({ type: '*/*' }))
 
 const PORT = process.env.PORT || 3000
 
-const NEXTCLOUD_URL = process.env.NEXTCLOUD_URL
-const NEXTCLOUD_USERNAME = process.env.NEXTCLOUD_USERNAME
-const NEXTCLOUD_PASSWORD = process.env.NEXTCLOUD_PASSWORD
-const NEXTCLOUD_FOLDER = process.env.NEXTCLOUD_FOLDER || 'AudioPen'
+const USERS_FILE = process.env.USERS_FILE || 'users.json'
+let users = {}
+try {
+  users = JSON.parse(readFileSync(USERS_FILE, 'utf8'))
+  console.log(`Loaded ${Object.keys(users).length} user(s) from ${USERS_FILE}`)
+} catch (err) {
+  console.error(`Failed to load ${USERS_FILE}: ${err.message}`)
+  process.exit(1)
+}
 
-app.post('/webhook', async (req, res) => {
+app.post('/webhook/:token', async (req, res) => {
+  const user = users[req.params.token]
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid token' })
+  }
+
   try {
-    console.log('Received webhook')
+    console.log(`Received webhook for user: ${user.username}`)
 
     console.log('HEADERS:', req.headers)
     console.log('RAW BODY:', req.body)
@@ -63,16 +74,16 @@ ${transcript}
 `
 
     const webdavUrl =
-      `${process.env.NEXTCLOUD_URL}` +
+      `${user.nextcloudUrl}` +
       `/remote.php/dav/files/` +
-      `${process.env.NEXTCLOUD_USERNAME}/` +
-      `${process.env.NEXTCLOUD_FOLDER}/` +
+      `${user.username}/` +
+      `${user.folder}/` +
       `${filename}`
 
     await axios.put(webdavUrl, markdown, {
       auth: {
-        username: process.env.NEXTCLOUD_USERNAME,
-        password: process.env.NEXTCLOUD_PASSWORD
+        username: user.username,
+        password: user.password
       },
       headers: {
         'Content-Type': 'text/markdown'

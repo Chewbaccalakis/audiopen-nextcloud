@@ -1,0 +1,14 @@
+{
+  "abc123secrettoken": {
+    "nextcloudUrl": "https://nextcloud.example.com",
+    "username": "alice",
+    "password": "alice-app-password",
+    "folder": "AudioPen"
+  },
+  "xyz789anothertoken": {
+    "nextcloudUrl": "https://nextcloud.example.com",
+    "username": "bob",
+    "password": "bob-app-password",
+    "folder": "AudioPen"
+  }
+}
