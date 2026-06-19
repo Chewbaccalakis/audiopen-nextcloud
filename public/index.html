@@ -224,6 +224,34 @@
     .manage-link a:hover { text-decoration: underline; }
 
     .hidden { display: none !important; }
+
+    .alt-action {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .btn-alt {
+      background: none;
+      border: none;
+      color: #6b7280;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: color 0.15s;
+    }
+
+    .btn-alt:hover { color: #0082c9; }
+
+    #alreadyPanel {
+      margin-top: 14px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid #f3f4f6;
+    }
   </style>
 </head>
 <body>
@@ -290,6 +318,19 @@
     <p class="manage-link hidden" id="manageLink">
       Bookmark this page to return and update your settings.
     </p>
+
+    <div class="alt-action" id="altAction">
+      <button type="button" class="btn-alt" onclick="toggleAlreadyRegistered(this)">
+        Already registered?
+      </button>
+      <div id="alreadyPanel" class="hidden">
+        <div class="field">
+          <label for="existingUrl">Paste your webhook URL</label>
+          <input type="url" id="existingUrl" placeholder="https://your-server/webhook/your-token" />
+        </div>
+        <button type="button" class="btn-submit" style="margin-top:0" onclick="goToSettings()">Go to my settings</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -319,6 +360,7 @@
         pwField.required = false
 
         document.getElementById('adminSection').classList.add('hidden')
+        document.getElementById('altAction').classList.add('hidden')
         document.getElementById('submitBtn').textContent = 'Update settings'
         document.getElementById('subtitle').textContent = 'Update your integration settings'
 
@@ -366,8 +408,8 @@
           data = await res.json()
           if (!res.ok) throw new Error(data.error)
 
-          webhookUrlValue = data.webhookUrl
-          showWebhookBanner(data.webhookUrl)
+          webhookUrlValue = `${location.protocol}//${location.host}/webhook/${data.token}`
+          showWebhookBanner(webhookUrlValue)
 
           const manageUrl = `${location.protocol}//${location.host}/?token=${data.token}`
           document.getElementById('manageLink').innerHTML =
@@ -413,6 +455,28 @@
 
     function clearAlert() {
       document.getElementById('alertBox').classList.add('hidden')
+    }
+
+    function toggleAlreadyRegistered(btn) {
+      const panel = document.getElementById('alreadyPanel')
+      const opening = panel.classList.contains('hidden')
+      panel.classList.toggle('hidden')
+      btn.textContent = opening ? 'Cancel' : 'Already registered?'
+    }
+
+    function goToSettings() {
+      const input = document.getElementById('existingUrl').value.trim()
+      try {
+        const url = new URL(input)
+        const parts = url.pathname.split('/').filter(Boolean)
+        const webhookIdx = parts.indexOf('webhook')
+        if (webhookIdx === -1 || !parts[webhookIdx + 1]) {
+          throw new Error('Could not find a token in that URL.')
+        }
+        location.href = `/?token=${encodeURIComponent(parts[webhookIdx + 1])}`
+      } catch (e) {
+        showAlert('error', e.message.startsWith('Could not') ? e.message : 'Please enter a valid webhook URL.')
+      }
     }
   </script>
 </body>
