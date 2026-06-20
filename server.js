@@ -1,12 +1,26 @@
-import 'dotenv/config'
+import dotenv from 'dotenv'
 import express from 'express'
 import axios from 'axios'
-import { readFileSync, writeFileSync } from 'fs'
+import { existsSync, readFileSync, writeFileSync } from 'fs'
 import { randomUUID, randomBytes, createCipheriv, createDecipheriv } from 'crypto'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+if (!existsSync(path.join(__dirname, '.env'))) {
+  const encryptionKey = randomBytes(32).toString('hex')
+  const adminPassword = randomBytes(16).toString('hex')
+  writeFileSync(
+    path.join(__dirname, '.env'),
+    `ENCRYPTION_KEY=${encryptionKey}\nADMIN_PASSWORD=${adminPassword}\nPORT=3000\n`
+  )
+  console.log('No .env file found — generated one with a new ENCRYPTION_KEY and ADMIN_PASSWORD.')
+  console.log(`ADMIN_PASSWORD: ${adminPassword}`)
+  console.log('Save this password — you will need it to register users via the web UI.')
+}
+
+dotenv.config()
 
 // --- Encryption setup ---
 
